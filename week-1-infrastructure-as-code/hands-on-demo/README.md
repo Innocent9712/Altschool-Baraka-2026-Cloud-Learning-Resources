@@ -6,7 +6,7 @@ the **same server three ways** and watching how each one behaves when you run it
 This is **not** a Terraform syntax lesson (that's Week 2). Students should leave thinking *"I see why we need this"*,
 not *"I memorised HCL"*.
 
-**Time**: ~50 minutes. **Cost**: a few cents (2–4 `t3.micro` instances for under an hour). **Destroy everything at the end.**
+**Cost**: a few cents (a handful of short-lived `t3.micro` instances). **Destroy everything at the end.**
 
 ---
 
@@ -32,7 +32,7 @@ Optional: `export AWS_REGION=<your-region>` (defaults to `us-east-1`). If you ch
 
 ---
 
-## Act 1 — ClickOps (5 min)
+## Act 1 — ClickOps
 
 1. In the AWS Console, start the **Launch instance** wizard. Don't launch — just scroll through it.
 2. Count the decisions out loud: name, AMI, instance type, key pair, VPC, subnet, public IP, security group, storage, tags...
@@ -46,7 +46,7 @@ Optional: `export AWS_REGION=<your-region>` (defaults to `us-east-1`). If you ch
 
 ---
 
-## Act 2 — Imperative script (12 min)
+## Act 2 — Imperative script
 
 ```bash
 cd 01-imperative
@@ -102,13 +102,13 @@ work out the steps*. **That logic is exactly what declarative tools give you for
 
 ---
 
-## Act 3 — Declarative with Terraform (18 min)
+## Act 3 — Declarative with Terraform
 
 ```bash
 cd ../02-declarative
 ```
 
-Open `main.tf`. Spend about 2 minutes on it and keep it high level: *"This says: there should be ONE server, this type, with these tags.
+Open `main.tf`. Keep it high level: *"This says: there should be ONE server, this type, with these tags.
 It doesn't say 'create'. It's a description, not a list of instructions."*
 
 ### 3a. Plan and apply
@@ -155,7 +155,7 @@ terraform plan -var instance_type=t3.small
 
 **Result**: `~ update in-place` — `instance_type: "t3.micro" -> "t3.small"`.
 **Point**: Terraform worked out the steps itself (behind the scenes AWS stops, modifies, and starts the instance).
-Optionally `apply` it (~1–2 min) and then switch back.
+Optionally `apply` it and then switch back.
 
 ### 3e. Replacement: immutable infrastructure
 
@@ -169,7 +169,7 @@ That's the **mutable vs immutable** distinction. In real plans, look for `# forc
 
 ---
 
-## Act 4 — Drift (10 min)
+## Act 4 — Drift
 
 ### 4a. Someone "fixes" something in the console
 
@@ -192,7 +192,7 @@ terraform apply                  # reality is back in line with code
 
 ### 4b. Someone deletes the server
 
-In the Console, **terminate** the instance. Wait until it shows `terminated` (~30s).
+In the Console, **terminate** the instance. Wait until it shows `terminated`.
 
 **Ask**: *"What will the plan say now?"*
 
@@ -205,7 +205,7 @@ terraform apply
 
 ---
 
-## Wrap-up — Destroy (3 min)
+## Wrap-up — Destroy
 
 ```bash
 terraform destroy                # type "yes"

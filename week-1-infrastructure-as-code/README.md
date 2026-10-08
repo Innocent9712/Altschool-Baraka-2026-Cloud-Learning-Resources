@@ -28,18 +28,13 @@ By the end of this week, you should be able to:
 | [hands-on-demo/](./hands-on-demo/) | The live class demo: the same server created by ClickOps, a Bash script, and Terraform |
 | [try-it-yourself/](./try-it-yourself/) | A free, no-cloud version of the demo for you to repeat at home |
 
-## Class Session Plan (2 hours)
+## Class Outline
 
-| Time | Segment | Notes |
-|---|---|---|
-| 0:00 – 0:10 | **Hook: the ClickOps problem** | "Prod is gone. Rebuild it by Monday." Who knows what was in it? Use the four questions at the top of the guide. |
-| 0:10 – 0:45 | **Concepts** | Declarative vs imperative (taxi analogy) → idempotency → state → drift → mutable vs immutable (pets vs cattle). Keep each to about 5 minutes. The demo makes them concrete. |
-| 0:45 – 0:50 | Break | Run `terraform init` in the demo folder now if you haven't already. |
-| 0:50 – 1:40 | **Live demo** | [hands-on-demo/README.md](./hands-on-demo/README.md). Ask the class to predict before every command. |
-| 1:40 – 1:50 | **Tool landscape** | Guide's "How to Choose" table. Mention the Terraform/OpenTofu licensing story and why we're using Terraform next week. |
-| 1:50 – 2:00 | **Check for understanding + wrap-up** | 3–4 questions from "Check Your Understanding", then introduce the take-home exercise and Week 2. |
-
-If time is short, cut the tool landscape down to the table (students can read the details in the guide). Don't cut the demo.
+1. **The ClickOps problem**: use the four questions at the top of the guide.
+2. **Concepts**: declarative vs imperative (taxi analogy) → idempotency → state → drift → mutable vs immutable (pets vs cattle).
+3. **Live demo**: [hands-on-demo/README.md](./hands-on-demo/README.md). Ask the class to predict before every command.
+4. **Tool landscape**: the guide's "How to Choose" table, the Terraform/OpenTofu licensing story, and why we're using Terraform next week.
+5. **Check for understanding**: questions from "Check Your Understanding", then introduce the take-home exercise and Week 2.
 
 ## After Class
 

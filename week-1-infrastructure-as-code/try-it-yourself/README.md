@@ -1,7 +1,6 @@
 # Try It Yourself: Imperative vs Declarative (no cloud account needed)
 
-This exercise repeats the live demo on your own machine, using **text files instead of servers**. It's free, takes
-about 15 minutes, and shows the same behaviour you saw in class.
+This exercise repeats the live demo on your own machine, using **text files instead of servers**. It's free and shows the same behaviour you saw in class.
 
 Think of the `servers/` folder as your "cloud account" and each line in a file as a "server".
 
