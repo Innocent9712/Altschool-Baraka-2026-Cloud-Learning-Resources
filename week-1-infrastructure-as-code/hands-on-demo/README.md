@@ -108,16 +108,21 @@ work out the steps*. **That logic is exactly what declarative tools give you for
 cd ../02-declarative
 ```
 
+> **Keep Terraform a black box this week.** Week 2 teaches how Terraform works: the workflow, the plan symbols,
+> state commands, and update vs replace. Here we only care about how a declarative tool *behaves*. If students ask
+> "what does that symbol mean?" or "how do I write this?", the answer is "next week".
+
 Open `main.tf`. Keep it high level: *"This says: there should be ONE server, this type, with these tags.
 It doesn't say 'create'. It's a description, not a list of instructions."*
 
-### 3a. Plan and apply
+### 3a. Preview, then apply
 
 ```bash
 terraform plan
 ```
 
-Point at the `+` symbol and `Plan: 1 to add`. **A plan is a preview, so nothing has changed yet.** Ask the class why being able to preview changes matters.
+Read out only the summary line: `Plan: 1 to add`. **Point**: The tool compared the description with reality, worked
+out that one server is missing, and is *telling us before it does anything*. Ask the class why being able to preview changes matters.
 
 ```bash
 terraform apply        # type "yes"
@@ -134,38 +139,21 @@ terraform apply
 **Result**: `No changes. Your infrastructure matches the configuration.`
 **Point**: Same code, run twice, same result. **Idempotent by design**, with no checking logic written by us.
 
-### 3c. Where did Terraform remember the server? State
+How did it know the server already existed? Run `ls` and point out the new `terraform.tfstate` file: *"That's the tool's
+memory of what it created. We'll look inside it next week."* Ask: *"What if this file was on my laptop and my laptop died?"*
+(See Scenario 6 in `state-and-drift.md`.)
 
-```bash
-ls                       # terraform.tfstate has appeared
-terraform state list
-terraform state show aws_instance.web
-```
+### 3c. The change the bash script ignored
 
-Briefly open `terraform.tfstate`. **Point**: Terraform keeps a record mapping `aws_instance.web` → `i-0abc...`.
-That's how it knew the server already existed. Ask: *"What if this file was on my laptop and my laptop died?"* (See Scenario 6 in `state-and-drift.md`.)
-
-### 3d. Change the code: update in place
-
-**Ask**: *"Remember the bash script ignored our request for a t3.small. What will Terraform do?"*
+**Ask**: *"The bash script ignored our request for a t3.small. What will Terraform do?"*
 
 ```bash
 terraform plan -var instance_type=t3.small
 ```
 
-**Result**: `~ update in-place` — `instance_type: "t3.micro" -> "t3.small"`.
-**Point**: Terraform worked out the steps itself (behind the scenes AWS stops, modifies, and starts the instance).
-Optionally `apply` it and then switch back.
-
-### 3e. Replacement: immutable infrastructure
-
-```bash
-terraform plan -replace=aws_instance.web
-```
-
-**Result**: `-/+ destroy and then create replacement`.
-**Point**: Some changes (like a new AMI) can't be made to a running server, so Terraform replaces it.
-That's the **mutable vs immutable** distinction. In real plans, look for `# forces replacement` and always check it, because replacing a database means data loss.
+**Result**: The plan says it will change the existing server's instance type: `1 to change`, not `1 to add`.
+**Point**: We changed the description and the tool worked out the steps. We didn't write any of the
+"stop, modify, start" logic the bash script would need. Don't apply it; just compare it with Act 2c.
 
 ---
 
@@ -179,8 +167,7 @@ In the AWS Console, edit the instance's tags: change `Environment` from `dev` to
 **Ask**: *"The code didn't change. Will Terraform notice?"*
 
 ```bash
-terraform plan -refresh-only     # "Objects have changed outside of Terraform"
-terraform plan                   # ~ tags.Environment: "prod-hotfix" -> "dev"
+terraform plan                   # Environment: "prod-hotfix" -> "dev"
 ```
 
 **Point**: Terraform detected the drift and wants to **revert it**. If that console change was a real hotfix, the next
@@ -197,7 +184,7 @@ In the Console, **terminate** the instance. Wait until it shows `terminated`.
 **Ask**: *"What will the plan say now?"*
 
 ```bash
-terraform plan                   # + create
+terraform plan                   # 1 to add
 terraform apply
 ```
 
@@ -221,7 +208,7 @@ cd ../01-imperative && ./list-servers.sh   # should be empty
 | Repeatable | ❌ | ✅ | ✅ |
 | Reviewable in Git | ❌ | ✅ | ✅ |
 | Safe to re-run (idempotent) | — | ❌ (unless you write the checks) | ✅ |
-| Handles updates | manual | ❌ (write more code) | ✅ (`~` / `-/+`) |
+| Handles updates | manual | ❌ (write more code) | ✅ |
 | Detects drift | ❌ | ❌ | ✅ |
 | Clean teardown | manual | write another script | `terraform destroy` |
 
@@ -232,7 +219,7 @@ cd ../01-imperative && ./list-servers.sh   # should be empty
 | Problem | Fix |
 |---|---|
 | `VPCIdNotSpecified` / no default VPC | Use a region with a default VPC, or create one: `aws ec2 create-default-vpc` |
-| `t3.micro` not available in your region/AZ | Pass `-var instance_type=t2.micro` (and edit the bash scripts) |
-| Plan unexpectedly shows `-/+` because of `ami` | AWS published a newer Amazon Linux AMI during class. That's a real-world example of why you should check plans before applying it. Use it as a teaching moment. |
+| `t3.micro` not available in your region/AZ | Pass `-var instance_type=t2.micro` to Terraform (and edit the bash scripts) |
+| Plan unexpectedly wants to replace the server because of `ami` | AWS published a newer Amazon Linux AMI during class. That's a real-world example of why you should check plans before applying them. Use it as a teaching moment. |
 | `terraform init` slow in class | Run it before class (see prerequisites) |
 | Forgot to clean up | `./01-imperative/cleanup.sh` and `terraform destroy` in `02-declarative/`, then `./01-imperative/list-servers.sh` to confirm |

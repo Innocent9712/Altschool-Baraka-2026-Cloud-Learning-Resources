@@ -37,21 +37,21 @@ Now run `terraform apply` **two more times**.
 
 ## Part 3 — State
 
-```bash
-ls
-terraform state list
-terraform state show local_file.web_server
-```
+Run `ls`. A new file, `terraform.tfstate`, has appeared. Open it in an editor and look around (don't change it).
 
-> **Question 3**: A new file, `terraform.tfstate`, appeared. Open it. What do you think Terraform uses it for?
+> **Question 3**: What do you think Terraform uses this file for? What would happen if you deleted it and ran `terraform apply` again?
+> (Hint: Scenario 6 in [state-and-drift.md](../state-and-drift.md).)
 
 ## Part 4 — Change the code
 
+Say we now want a large server instead of a small one:
+
 ```bash
-terraform plan -var size=large
+terraform apply -var size=large      # type "yes"
+cat servers/declared-inventory.txt
 ```
 
-> **Question 4**: Does Terraform update the file in place, or replace it? (Look for `must be replaced` / `forces replacement`.)
+> **Question 4**: How many "servers" are in the inventory now, and what size are they? How would you make `imperative.sh` do the same thing?
 
 ## Part 5 — Drift
 
