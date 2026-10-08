@@ -1,0 +1,15 @@
+# ==============================================================================
+# VARIABLE ASSIGNMENTS (TFVARS)
+# ==============================================================================
+# Copy this file to terraform.tfvars:  cp terraform.tfvars.example terraform.tfvars
+#
+# terraform.tfvars is loaded automatically and feeds values to declared variables.
+# It is listed in .gitignore because real projects often put environment-specific
+# or sensitive values in it — the .example file documents what's expected.
+# ==============================================================================
+
+aws_region    = "us-east-1"
+project_name  = "terraform-hands-on"
+environment   = "dev"
+instance_type = "t3.micro"
+# vpc_cidr      = "10.0.0.0/16"
