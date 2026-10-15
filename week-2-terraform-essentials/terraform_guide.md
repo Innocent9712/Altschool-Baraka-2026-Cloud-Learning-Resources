@@ -588,6 +588,11 @@ terraform graph
 
 Let's create a complete, working example that deploys a web server on AWS.
 
+> **How this relates to the class demo**: this is a write-it-yourself version of Steps 1 and 3 of the
+> [hands-on demo](./hands-on-demo/README.md). It builds the same kind of network and web server, but you type every file
+> yourself, starting from an empty folder. The class demo goes further: remote state in S3 (Step 2), update in place vs
+> replacement (Step 4), and modules (Step 5). Build this example first for practice, then work through the demo.
+
 ### Step 1: Create the Project Structure
 
 ```bash
