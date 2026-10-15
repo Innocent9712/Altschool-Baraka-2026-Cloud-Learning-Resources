@@ -1,0 +1,10 @@
+# Keep the build context small and free of secrets: anything listed here is
+# never sent to the Docker daemon, so it can't end up in an image.
+.venv
+__pycache__
+*.pyc
+.git
+.env
+*.md
+compose.yaml
+Dockerfile*

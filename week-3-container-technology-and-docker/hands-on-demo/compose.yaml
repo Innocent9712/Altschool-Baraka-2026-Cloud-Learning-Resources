@@ -1,0 +1,55 @@
+# ==============================================================================
+# DOCKER COMPOSE: the whole stack (database + app) in one file
+# ==============================================================================
+# Everything we did by hand with `docker network create`, `docker volume create`
+# and two long `docker run` commands, written down declaratively.
+#
+#   cp .env.example .env      # Compose reads ${VARIABLES} from .env
+#   docker compose up --build -d
+#   docker compose ps
+#   docker compose logs -f app
+#   docker compose down       # stop & remove containers and network (keeps the volume)
+#   docker compose down -v    # ...and delete the database volume too
+# ==============================================================================
+
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      # PostgreSQL 18+ images keep data under /var/lib/postgresql
+      - postgres_data:/var/lib/postgresql
+    # No `ports:` — only the app needs to reach the database, over the Compose
+    # network. Uncomment to connect from your machine (e.g. with a DB GUI):
+    # ports:
+    #   - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  app:
+    build: .
+    image: demo-app:compose
+    environment:
+      # "db" is the service name above: Compose's network gives each service a DNS name
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy # wait until pg_isready succeeds, not just until the container starts
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

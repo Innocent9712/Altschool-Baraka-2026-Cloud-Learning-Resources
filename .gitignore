@@ -41,5 +41,4 @@ terraform.rc
 node_modules
 dist
 .env
-.env.example
 .terraform
