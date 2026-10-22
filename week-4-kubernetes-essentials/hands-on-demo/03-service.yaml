@@ -1,0 +1,16 @@
+# A Service gives the Pods ONE stable address and load-balances across them.
+# Pods come and go (and get new IPs); the Service finds the current ones by label.
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-web-service
+spec:
+  # NodePort: reachable on port 30080 of every node.
+  # (The default type, ClusterIP, is only reachable from inside the cluster.)
+  type: NodePort
+  selector:
+    app: demo-web-app # Send traffic to Pods with this label
+  ports:
+    - port: 80 # The Service's own port inside the cluster
+      targetPort: 80 # The container port on the Pods
+      nodePort: 30080 # The port on every node (range 30000-32767)

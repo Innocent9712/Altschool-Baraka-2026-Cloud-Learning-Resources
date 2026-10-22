@@ -1,0 +1,14 @@
+# The smallest deployable unit: a single Pod running one container.
+# Nothing will recreate it if it dies or is deleted.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hello-pod
+  labels:
+    app: hello
+spec:
+  containers:
+    - name: web
+      image: nginx:1.29-alpine
+      ports:
+        - containerPort: 80

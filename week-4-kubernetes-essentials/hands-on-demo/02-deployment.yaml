@@ -1,0 +1,37 @@
+# A Deployment: "keep 3 copies of this Pod running, and update them safely".
+# The Deployment creates a ReplicaSet, and the ReplicaSet creates the Pods.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-web-app
+  labels:
+    app: demo-web-app
+spec:
+  replicas: 3 # Desired state: 3 Pods
+
+  # Which Pods this Deployment manages: those with the label app=demo-web-app
+  selector:
+    matchLabels:
+      app: demo-web-app
+
+  # During an update, add at most 1 extra Pod and never drop below 3 ready Pods
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  # The Pod template: every Pod created from this Deployment looks like this
+  template:
+    metadata:
+      labels:
+        app: demo-web-app # Must match the selector above
+    spec:
+      containers:
+        - name: web
+          image: demo-web-app:v1
+          # Use the image already loaded into the cluster's nodes (with `kind load`)
+          # instead of trying to pull it from Docker Hub.
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
