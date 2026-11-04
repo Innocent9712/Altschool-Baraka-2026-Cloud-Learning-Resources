@@ -1,0 +1,42 @@
+# The same routing as k8s/06-ingress.yaml, written with the Gateway API: the
+# newer, more expressive successor to Ingress. Apply it instead of the Ingress
+# to compare (see "Going further" in the demo README).
+#
+# The work is split between two objects, usually owned by different teams:
+#   Gateway   - the entry point itself: which controller, which port (platform team)
+#   HTTPRoute - the routing rules for one app (app team)
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: demo-gateway
+  namespace: demo-app
+spec:
+  gatewayClassName: cloud-provider-kind # See `kubectl get gatewayclass`
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: demo-app
+  namespace: demo-app
+spec:
+  parentRefs:
+    - name: demo-gateway # Attach these rules to the Gateway above
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+      backendRefs:
+        - name: backend
+          port: 8000
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: frontend
+          port: 80

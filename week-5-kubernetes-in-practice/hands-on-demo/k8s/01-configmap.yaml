@@ -1,0 +1,15 @@
+# Non-secret configuration, kept out of the image so the same image can run in
+# any environment. The backend reads these as environment variables.
+#
+# The database username and password are NOT here: they go in a Secret
+# (created with kubectl in the demo, so they're never committed to Git).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: demo-app
+data:
+  DB_HOST: postgres # The name of the Postgres Service (cluster DNS)
+  DB_PORT: "5432" # ConfigMap values are always strings, so numbers are quoted
+  POSTGRES_DB: appdb
+  REDIS_URL: redis://redis:6379/0 # The name of the Redis Service

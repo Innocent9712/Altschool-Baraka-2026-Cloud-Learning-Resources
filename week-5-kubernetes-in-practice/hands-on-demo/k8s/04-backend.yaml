@@ -1,0 +1,70 @@
+# The FastAPI backend: a stateless Deployment, so it can run as many replicas as needed.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: demo-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: demo-backend:v1
+          imagePullPolicy: IfNotPresent # Use the image loaded with `kind load`
+          ports:
+            - containerPort: 8000
+          # Every key in the ConfigMap and the Secret becomes an environment variable
+          envFrom:
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: db-credentials
+          # Readiness: "send me traffic?" While this fails, the Pod is removed from the
+          # Service's endpoints, but it is NOT restarted.
+          readinessProbe:
+            httpGet:
+              path: /api/ready
+              port: 8000
+            periodSeconds: 5
+            failureThreshold: 2
+          # Liveness: "am I stuck?" If this fails 3 times in a row, the kubelet restarts the container.
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          # Requests: what the scheduler reserves on a node for this container (and what
+          # the autoscaler measures CPU usage against). Limits: the most it may use.
+          resources:
+            requests:
+              cpu: 100m # 0.1 of a CPU core
+              memory: 128Mi
+            limits:
+              cpu: 500m # Above this, the container is slowed down (throttled)
+              memory: 256Mi # Above this, the container is killed (OOMKilled)
+---
+# ClusterIP (the default type): reachable only from inside the cluster. Outside
+# traffic reaches the backend through the Ingress, never directly.
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: demo-app
+  annotations:
+    # Only used on EKS: tells the AWS load balancer which path to health-check. kind ignores it.
+    alb.ingress.kubernetes.io/healthcheck-path: /api/ready
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 8000
+      targetPort: 8000

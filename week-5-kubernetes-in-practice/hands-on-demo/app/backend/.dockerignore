@@ -1,0 +1,7 @@
+# Keep the build context small and free of secrets
+.venv
+__pycache__
+*.pyc
+.env
+*.md
+Dockerfile*

@@ -1,0 +1,27 @@
+# The demo's Ingress (../hands-on-demo/k8s/06-ingress.yaml), for EKS Auto Mode.
+# Only ingressClassName is different: "alb" makes AWS create an Application Load
+# Balancer (configured in cluster-setup.yaml). The routing rules are identical.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-app
+  namespace: demo-app
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

@@ -1,0 +1,35 @@
+# One-off cluster setup for EKS Auto Mode. Apply this once, before the app.
+# On kind, cloud-provider-kind and the local-path provisioner give you these two
+# things automatically. On EKS Auto Mode you declare them yourself.
+
+# 1. A default StorageClass: PersistentVolumeClaims (like Postgres's) get an EBS volume.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: auto-ebs-sc
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.eks.amazonaws.com
+volumeBindingMode: WaitForFirstConsumer # Create the volume in the AZ where the Pod lands
+parameters:
+  type: gp3
+  encrypted: "true"
+---
+# 2. An IngressClass: Ingress objects with ingressClassName: alb get an AWS Application Load Balancer.
+apiVersion: eks.amazonaws.com/v1
+kind: IngressClassParams
+metadata:
+  name: alb
+spec:
+  scheme: internet-facing # Reachable from the internet (the default is internal)
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: alb
+spec:
+  controller: eks.amazonaws.com/alb
+  parameters:
+    apiGroup: eks.amazonaws.com
+    kind: IngressClassParams
+    name: alb

@@ -1,0 +1,6 @@
+# Everything for this app lives in its own namespace, separate from anything
+# else in the cluster. Every other manifest in this folder sets namespace: demo-app.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo-app

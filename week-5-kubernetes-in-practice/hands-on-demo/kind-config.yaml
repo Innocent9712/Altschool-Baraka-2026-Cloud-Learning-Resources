@@ -1,0 +1,12 @@
+# A local 3-node Kubernetes cluster: 1 control-plane node + 2 worker nodes.
+#
+#   kind create cluster --name k8s-practice --config kind-config.yaml
+#
+# Unlike Week 4, there are no port mappings here. cloud-provider-kind gives the
+# cluster working LoadBalancer Services and Ingress, the way a cloud provider would.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+  - role: worker
+  - role: worker

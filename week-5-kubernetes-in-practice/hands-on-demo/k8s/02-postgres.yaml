@@ -1,0 +1,79 @@
+# PostgreSQL, run as a StatefulSet: the workload type for apps that keep data.
+# Compared to a Deployment, each Pod gets a stable name (postgres-0) and its own
+# PersistentVolumeClaim that stays attached to it, even when the Pod is replaced.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: demo-app
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:18-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            # POSTGRES_USER and POSTGRES_PASSWORD come from the Secret...
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: POSTGRES_PASSWORD
+            # ...and the database name from the ConfigMap, so it matches what the backend uses
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: POSTGRES_DB
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql # The data directory for postgres 18+
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+  # One PersistentVolumeClaim per Pod, created from this template. kind's default
+  # StorageClass provisions a matching volume on the node automatically.
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+---
+# A "headless" Service (clusterIP: None): the DNS name `postgres` resolves straight
+# to the Pod's IP. StatefulSets use one to give each Pod a stable DNS name.
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: demo-app
+spec:
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+    - port: 5432

@@ -1,0 +1,29 @@
+# One entry point for the whole app, routing by URL path:
+#   /api/...  -> the backend Service
+#   anything else -> the frontend Service
+# Because the browser loads the page and calls the API on the same address,
+# the frontend needs no backend URL baked into it, and no CORS setup.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-app
+  namespace: demo-app
+spec:
+  ingressClassName: cloud-provider-kind # Which Ingress controller handles this (see `kubectl get ingressclass`)
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

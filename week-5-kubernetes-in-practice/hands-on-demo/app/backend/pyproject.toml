@@ -1,0 +1,15 @@
+[project]
+name = "demo-app-backend"
+version = "0.1.0"
+description = "FastAPI backend for the Week 5 Kubernetes demo app"
+requires-python = ">=3.13"
+dependencies = [
+    "bcrypt>=5.0.0",
+    "fastapi>=0.116.1",
+    "psycopg[binary]>=3.3.6",
+    "pydantic[email]>=2.11.7",
+    "python-dotenv>=1.1.1",
+    "redis>=6.4.0",
+    "sqlalchemy>=2.0.43",
+    "uvicorn>=0.35.0",
+]

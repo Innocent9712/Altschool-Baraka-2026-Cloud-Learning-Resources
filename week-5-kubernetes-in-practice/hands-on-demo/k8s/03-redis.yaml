@@ -1,0 +1,43 @@
+# Redis, used only as a cache. If it loses its data, nothing is lost for good, so
+# a plain Deployment with no volume is enough (compare with Postgres in 02-postgres.yaml).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: demo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:8-alpine
+          ports:
+            - containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: demo-app
+spec:
+  selector:
+    app: redis
+  ports:
+    - port: 6379
