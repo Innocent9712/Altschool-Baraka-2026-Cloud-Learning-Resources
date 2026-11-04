@@ -28,7 +28,7 @@ As in previous weeks, ask the class to **predict** what will happen before runni
 
 | File | Purpose |
 |---|---|
-| `kind-config.yaml` | The local cluster: 1 control-plane node, 2 worker nodes, and port 30080 forwarded to your machine |
+| `kind-config.yaml` | The local cluster: 1 control-plane node, 2 worker nodes, and NodePort 30080 forwarded to port 30090 on your machine |
 | `app/` | A small nginx web page showing **which Pod** served the request, with a version and colour set at build time |
 | `01-pod.yaml` | A single Pod |
 | `02-deployment.yaml` | A Deployment running 3 replicas of the demo app |
@@ -154,10 +154,10 @@ kubectl get service demo-web-service
 kubectl get endpointslices -l kubernetes.io/service-name=demo-web-service   # the Pod IPs behind the Service
 ```
 
-Open http://localhost:30080. The page shows which Pod served it. Then:
+Open http://localhost:30090. The page shows which Pod served it. (Why 30090 and not 30080? The Service opens NodePort 30080 on every node. Our nodes are Docker containers, so `kind-config.yaml` forwards port 30090 on your machine to port 30080 on the node.) Then:
 
 ```bash
-for i in $(seq 1 10); do curl -s localhost:30080 | grep -o 'demo-web-app-[a-z0-9-]*'; done
+for i in $(seq 1 10); do curl -s localhost:30090 | grep -o 'demo-web-app-[a-z0-9-]*'; done
 ```
 
 **Point**: Requests are spread across all the Pods. (A browser tends to reuse one connection, so it may keep showing the same Pod. `curl` opens a new connection each time.)
@@ -186,7 +186,7 @@ kubectl rollout status deployment/demo-web-app
 kubectl get replicasets                # the new ReplicaSet has 5 Pods; the old one is scaled to 0 (kept for rollback)
 ```
 
-Refresh http://localhost:30080: the page is now purple and says v2. (If you run the `curl` loop *during* the rollout, you'll see v1 and v2 answering side by side.)
+Refresh http://localhost:30090: the page is now purple and says v2. (If you run the `curl` loop *during* the rollout, you'll see v1 and v2 answering side by side.)
 
 **Now a bad release.** Change the image to `demo-web-app:v3`, an image that doesn't exist:
 
@@ -194,7 +194,7 @@ Refresh http://localhost:30080: the page is now purple and says v2. (If you run 
 kubectl set image deployment/demo-web-app web=demo-web-app:v3
 kubectl get pods                       # one new Pod is stuck in ErrImagePull / ImagePullBackOff
 kubectl describe pod <the-failing-pod> # Events: "Back-off pulling image demo-web-app:v3"
-curl -s localhost:30080 | grep -o 'Kubernetes (v[0-9])'   # still v2: users are unaffected
+curl -s localhost:30090 | grep -o 'Kubernetes (v[0-9])'   # still v2: users are unaffected
 ```
 
 **Point**: Because `maxUnavailable: 0`, Kubernetes never removed a working Pod while the new one couldn't start. The bad release is stuck instead of taking the site down.
@@ -254,7 +254,7 @@ docker image rm demo-web-app:v1 demo-web-app:v2
 
 | Problem | Fix |
 |---|---|
-| `kind create cluster` fails with `port is already allocated` | Something else (often another kind cluster) uses port 30080. Change `hostPort` in `kind-config.yaml` (e.g. to `30090`) and use that port in the browser and `curl` |
+| `kind create cluster` fails with `port is already allocated` | Something else (often another kind cluster) uses port 30090. Change `hostPort` in `kind-config.yaml` (e.g. to `30100`) and use that port in the browser and `curl` |
 | Pods stuck in `ErrImagePull` for `demo-web-app:v1` | The image wasn't loaded into the cluster. Run the `kind load docker-image` command from Step 3 |
 | `kubectl` talks to the wrong cluster | `kubectl config get-contexts`, then `kubectl config use-context kind-k8s-demo` |
-| http://localhost:30080 doesn't respond | Check the Service exists (`kubectl get svc`) and that `nodePort: 30080` matches `containerPort` in `kind-config.yaml` |
+| http://localhost:30090 doesn't respond | Check the Service exists (`kubectl get svc`) and that `nodePort: 30080` matches `containerPort` in `kind-config.yaml` |

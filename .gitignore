@@ -42,3 +42,6 @@ node_modules
 dist
 .env
 .terraform
+
+# Kubeconfig files (contain cluster credentials)
+*.kubeconfig

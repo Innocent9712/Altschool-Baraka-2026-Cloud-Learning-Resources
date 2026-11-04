@@ -6,10 +6,10 @@ kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
   - role: control-plane
-    # Forward port 30080 on your machine to NodePort 30080 in the cluster,
-    # so the NodePort Service in 03-service.yaml is reachable at http://localhost:30080
+    # Forward port 30090 on your machine to NodePort 30080 in the cluster,
+    # so the NodePort Service in 03-service.yaml is reachable at http://localhost:30090
     extraPortMappings:
-      - containerPort: 30080
-        hostPort: 30080
+      - containerPort: 30080 # The NodePort inside the cluster (must match nodePort in 03-service.yaml)
+        hostPort: 30090 # The port on your machine (change this if it's already in use)
   - role: worker
   - role: worker
