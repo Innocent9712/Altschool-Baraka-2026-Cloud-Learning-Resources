@@ -45,3 +45,7 @@ dist
 
 # Kubeconfig files (contain cluster credentials)
 *.kubeconfig
+
+# Instructor copies of the demo READMEs (talking points, kept off GitHub) and the script that checks them
+*.instructor.md
+check-readme-copies.py
