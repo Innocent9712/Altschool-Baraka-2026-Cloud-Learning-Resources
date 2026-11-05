@@ -3,8 +3,7 @@
 This directory contains a fully working, simple AWS deployment for demonstrating the core concepts of Terraform:
 providers, resources, variables, data sources, outputs, state, and modules.
 
-It's built up **step by step by uncommenting sections** in `main.tf` and `outputs.tf`. After each change, run the
-CLI and talk through the output.
+It's built up **step by step by uncommenting sections** in `main.tf` and `outputs.tf`.
 
 Last week we treated Terraform as a black box and only looked at how it *behaves*: it's idempotent, it detects
 drift, and it recreates deleted resources. This week we open the box and look at how it works.
@@ -94,7 +93,6 @@ By default, the S3 backend configuration in `backend.tf` is commented out, so Te
      terraform state show aws_vpc.main
      terraform output
      ```
-   - Ask: *"This file is on my laptop. What happens if a teammate runs `apply` from their laptop?"* That question leads into Step 2.
 
 ---
 
