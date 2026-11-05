@@ -28,13 +28,9 @@ On the way we use the objects that turn "it runs" into "it runs properly":
 11. **RBAC**: who can do what
 12. Cleanup
 
-As in previous weeks, ask the class to **predict** what will happen before running each command.
-
 ## Prerequisites
 
 Everything from Week 4 (Docker, `kubectl`, `kind`), and nothing else: **cloud-provider-kind** runs as a container.
-
-**Build the two images before class** (Step 2). The frontend build downloads its npm packages, so it's the slowest part.
 
 > **Other kind clusters on your machine?** cloud-provider-kind works with every kind cluster it finds. It will also
 > give LoadBalancer Services and Ingresses in those clusters a working address.
@@ -72,9 +68,7 @@ kubectl config current-context        # kind-k8s-practice
 kubectl get nodes
 ```
 
-**Ask**: *"In Week 4 we reached our app through a NodePort and a port mapping in `kind-config.yaml`. What happens on
-AWS when you ask for a Service of type LoadBalancer?"* The cloud provider creates a real load balancer for you. A
-plain kind cluster has no cloud behind it, so we add one: **cloud-provider-kind**, a small program that plays the
+A plain kind cluster has no cloud behind it, so we add one: **cloud-provider-kind**, a small program that plays the
 role of the cloud provider for kind clusters.
 
 ```bash
@@ -92,7 +86,6 @@ kubectl get ingressclass,gatewayclass   # an Ingress controller and a Gateway AP
 kubectl get storageclass                # "standard" (default): kind can create volumes on demand
 ```
 
-**Points**:
 - Every cluster provides a few things the app objects rely on: an **Ingress controller** (routes HTTP traffic),
   a **load balancer** integration, and a **StorageClass** (creates disks). On EKS, AWS provides them. Here it's
   cloud-provider-kind and kind's local-path provisioner.
@@ -124,7 +117,6 @@ kubectl apply -f k8s/00-namespace.yaml
 kubectl get namespaces
 ```
 
-**Points**:
 - A namespace groups the objects of one app or team. Names only need to be unique **within** a namespace, so two
   teams can both have a Service called `backend`.
 - RBAC permissions (Step 11) and resource quotas are usually set per namespace.
@@ -139,8 +131,6 @@ kubectl get pods                      # "No resources found in demo-app namespac
 ---
 
 ## Step 4: ConfigMaps and Secrets
-
-**Ask**: *"In Week 3, the database password was in `.env` and `compose.yaml`. Where should it live in Kubernetes?"*
 
 Open `k8s/01-configmap.yaml`: the database host, port and name, and the Redis URL. Nothing secret.
 
@@ -160,7 +150,6 @@ kubectl get secret db-credentials -o yaml          # the values are base64-encod
 kubectl get secret db-credentials -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d; echo   # ...not encrypted
 ```
 
-**Points**:
 - **base64 is an encoding, not encryption.** Anyone who can read the Secret can read the password. What protects a
   Secret is who is *allowed* to read it (RBAC, Step 11), and encryption of etcd on the server side.
 - The **same** Secret is used by Postgres (to set the password) and by the backend (to log in), so they can't drift apart.
@@ -171,8 +160,7 @@ kubectl get secret db-credentials -o jsonpath='{.data.POSTGRES_PASSWORD}' | base
 
 ## Step 5: Storage That Outlives Pods
 
-**Ask**: *"A Pod is deleted and replaced (Week 4). What happens to files the database wrote inside its container?"*
-They're gone. A database needs storage that isn't tied to one Pod.
+A database needs storage that isn't tied to one Pod.
 
 Open `k8s/02-postgres.yaml`:
 - It's a **StatefulSet**, not a Deployment: the Pod gets a stable name (`postgres-0`), and its own volume that
@@ -187,7 +175,6 @@ kubectl get pods -w                   # wait for postgres-0 to be 1/1 Running, t
 kubectl get pvc,pv                    # the claim (PVC), and the volume created for it (PV): Bound
 ```
 
-**Points**:
 - **PVC** = "I need 1Gi of disk" (written by the app team). **PV** = an actual disk (created by the StorageClass, or
   by an admin). On EKS the same YAML gets an EBS volume.
 - The Service is **headless** (`clusterIP: None`): the name `postgres` resolves straight to the Pod's IP.
@@ -221,9 +208,6 @@ kubectl get endpointslices -l kubernetes.io/service-name=backend   # the 2 ready
 kubectl describe node k8s-practice-worker | grep -A8 "Allocated resources"
 ```
 
-**Ask**: *"What if a Pod requested more CPU than any node has free?"* It stays **Pending**: the scheduler places
-Pods by their requests.
-
 ---
 
 ## Step 7: Service Types: Reaching the App
@@ -233,7 +217,7 @@ kubectl apply -f k8s/05-frontend.yaml
 kubectl get services                  # backend, frontend, postgres, redis: all ClusterIP (or headless)
 ```
 
-**Ask**: *"Can I open the frontend in my browser now?"* No. **ClusterIP** Services are only reachable from inside
+**ClusterIP** Services are only reachable from inside
 the cluster. That's the right default: Postgres and Redis should never be reachable from outside.
 
 **For yourself, while developing**, `port-forward` tunnels one port from your laptop into the cluster:
@@ -243,7 +227,7 @@ kubectl port-forward service/frontend 8080:80    # open http://localhost:8080, t
 ```
 
 The page loads, but the data doesn't: the browser calls `/api` on `localhost:8080`, and this tunnel only reaches the
-frontend, whose nginx answers `/api` with 404. Hold that thought.
+frontend, whose nginx answers `/api` with 404.
 
 **For real users**, a Service of type **LoadBalancer** asks the cloud for a load balancer:
 
@@ -253,8 +237,6 @@ kubectl get service frontend-lb       # EXTERNAL-IP: <pending> for a few seconds
 ./show-urls.sh                        # the localhost URL for that load balancer
 ```
 
-**Ask**: *"The app also needs the backend reachable at `/api`. Should we give the backend its own LoadBalancer
-too?"* That works, but:
 - Every LoadBalancer Service is a separate load balancer, and **in the cloud each one costs money**.
 - The frontend and backend would be on **different addresses**, so the frontend would need the backend's address
   baked in at build time, plus CORS settings.
@@ -285,7 +267,6 @@ Open that URL. Create a user and a post in the UI, then open the **Health** page
 curl -s http://localhost:<port>/api/health          # replace <port> with yours
 ```
 
-**Points**:
 - The Ingress object is just **routing rules**. The **Ingress controller** is the program that receives the traffic
   and applies them. On EKS it would be an AWS Application Load Balancer, configured from the same YAML.
 - One entry point, one address: the page and the API share an origin, so there's nothing to configure in the
@@ -304,8 +285,6 @@ successor to Ingress. More in [Going Further](#going-further).
 
 ## Step 9: Readiness and Persistence in Action
 
-**Ask**: *"The database goes down. What should happen to the backend Pods: restart them, or something else?"*
-
 ```bash
 kubectl scale statefulset postgres --replicas=0
 kubectl get pods -w                   # after a few seconds, backend Pods go to 0/1. RESTARTS stays at 0. Ctrl+C
@@ -315,7 +294,7 @@ kubectl describe endpointslices -l kubernetes.io/service-name=backend | grep -E 
 Refresh the app: the page still loads (the frontend is fine), but the data can't be fetched. The Ingress answers
 `/api` with `503 Service Unavailable` instead of sending users to Pods that can't serve them.
 
-**Point**: Readiness failed, liveness didn't. Kubernetes stopped sending traffic but didn't restart anything,
+Readiness failed, liveness didn't. Kubernetes stopped sending traffic but didn't restart anything,
 because restarting wouldn't help. Now bring the database back:
 
 ```bash
@@ -336,7 +315,6 @@ kubectl get pvc                       # the same claim, untouched
 
 ## Step 10: Autoscaling on CPU Load
 
-**Ask**: *"In Week 4 we scaled by hand. Can Kubernetes do it from the load?"* Yes, with a
 **HorizontalPodAutoscaler** (HPA). It needs CPU measurements, which come from **metrics-server**:
 
 ```bash
@@ -371,7 +349,6 @@ kubectl delete pod load
 kubectl get hpa -w                    # CPU drops, but REPLICAS stays at 6 for ~5 minutes before scaling down
 ```
 
-**Points**:
 - Scale-down is deliberately slow, so a short dip in traffic doesn't remove Pods you'll need again a minute later.
 - The HPA only works because the backend sets CPU **requests**. Without them it has nothing to compare usage to.
 - The HPA now owns `replicas`. Re-applying `04-backend.yaml` would reset it to 2 until the HPA adjusts it again. In
@@ -381,8 +358,7 @@ kubectl get hpa -w                    # CPU drops, but REPLICAS stays at 6 for ~
 
 ## Step 11: RBAC: Who Can Do What
 
-**Ask**: *"Our CI pipeline (Weeks 6–7) and a monitoring tool will talk to this cluster. Should they be cluster
-admins like us?"* No. Give each identity only what it needs.
+Give each identity only what it needs.
 
 Open `k8s/08-rbac.yaml`: a **ServiceAccount** (`viewer`), a **Role** that can read Pods and their logs in
 `demo-app`, and a **RoleBinding** connecting them.
@@ -399,7 +375,6 @@ kubectl get pods    --as=system:serviceaccount:demo-app:viewer   # works
 kubectl get secrets --as=system:serviceaccount:demo-app:viewer   # Forbidden
 ```
 
-**Points**:
 - `--as` lets an admin test permissions without logging in as someone else.
 - **Role/RoleBinding** apply to one namespace. **ClusterRole/ClusterRoleBinding** apply to the whole cluster (for
   things like nodes, which don't belong to a namespace).
@@ -420,7 +395,7 @@ docker image rm demo-backend:v1 demo-frontend:v1
 
 ---
 
-## Summary to Show the Class
+## Summary
 
 | We needed | Kubernetes object | What it gives you |
 |---|---|---|
