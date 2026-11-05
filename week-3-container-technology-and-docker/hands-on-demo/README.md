@@ -12,14 +12,11 @@ This folder contains a small **FastAPI + PostgreSQL** app (a users API) that we 
 8. Docker Compose: the whole stack in one file
 9. Sharing the image through a registry
 
-As in previous weeks, ask the class to **predict** what will happen before running each command.
-
 ## Prerequisites
 
 - **Docker** installed and running: Docker Desktop (macOS/Windows) or Docker Engine (Linux). Check with `docker version` and `docker compose version`.
 - `curl` (or just use a browser)
 - Optional: [`uv`](https://docs.astral.sh/uv/) to run the app *without* Docker for comparison
-- Pull the images before class so you aren't waiting on downloads: `docker pull nginx:alpine && docker pull alpine:3.22 && docker pull postgres:18-alpine && docker pull python:3.13-slim`
 
 ## Files
 
@@ -56,7 +53,7 @@ docker exec sleeper hostname
 docker rm -f sleeper
 ```
 
-**Point**: There's no "guest OS" booting. A container is a normal process that the kernel shows a restricted view of the system (PID, network, mount, and hostname namespaces).
+There's no "guest OS" booting. A container is a normal process that the kernel shows a restricted view of the system (PID, network, mount, and hostname namespaces).
 
 Now cgroups:
 
@@ -80,16 +77,14 @@ docker run -d --name web1 -p 8080:80 nginx:alpine
 docker ps
 ```
 
-Open http://localhost:8080. **Explain** `-p 8080:80`: host port 8080 forwards to port 80 inside the container.
-
-**Ask**: *"Can I run a second one from the same image?"*
+Open http://localhost:8080. `-p 8080:80`: host port 8080 forwards to port 80 inside the container.
 
 ```bash
 docker run -d --name web2 -p 8081:80 nginx:alpine
 docker ps
 ```
 
-**Point**: One image (the template) can be used for many containers (running instances). Each one gets its own filesystem, network, and process.
+One image (the template) can be used for many containers (running instances). Each one gets its own filesystem, network, and process.
 
 ```bash
 docker logs web1                       # what nginx printed (your page visits)
@@ -122,15 +117,13 @@ docker history demo-app:simple       # each instruction = a layer
 docker build -f Dockerfile.simple -t demo-app:simple .
 ```
 
-**Ask**: *"Which steps will run again?"* Only the `COPY main.py` step and the ones after it. The dependency install shows `CACHED`. Now imagine the order was `COPY . .` first: every code change would reinstall every dependency.
+Only the `COPY main.py` step and the ones after it. The dependency install shows `CACHED`. Now imagine the order was `COPY . .` first: every code change would reinstall every dependency.
 
 Undo the change to `main.py`.
 
 ---
 
 ## Step 4: Running Our Image, and Why It Fails on Its Own
-
-**Ask**: *"What happens if we just run it?"*
 
 ```bash
 docker run --rm -p 8000:8000 demo-app:simple
@@ -180,7 +173,6 @@ curl localhost:8000/users
 
 Also open http://localhost:8000/docs (interactive API docs).
 
-**Points**:
 - `postgres-db` in the URL is the **container name**, resolved by Docker's DNS on the user-defined network. The default bridge network doesn't provide this.
 - The database has **no `-p`**: only the app can reach it, over the private network. Nothing on your machine or the internet can.
 - `/health` returns a `hostname`: the container ID of the container that answered.
@@ -195,8 +187,6 @@ docker network inspect app-network   # both containers and their private IPs
 
 We started Postgres with `-v pgdata:/var/lib/postgresql`. Let's see why.
 
-**Ask**: *"If I delete the database container and create a new one, is Ada still there?"*
-
 ```bash
 docker rm -f postgres-db
 
@@ -208,7 +198,7 @@ docker run -d --name postgres-db --network app-network \
 curl localhost:8000/users     # Ada is still there (give the database a few seconds to start)
 ```
 
-**Point**: The data lives in the **named volume** `pgdata`, not in the container. Containers are disposable; volumes are not.
+The data lives in the **named volume** `pgdata`, not in the container. Containers are disposable; volumes are not.
 
 Now without a volume:
 
@@ -270,8 +260,6 @@ docker volume rm pgdata
 
 ## Step 8: Docker Compose, the Whole Stack in One File
 
-**Ask**: *"How many commands did that take, and would a new teammate get them all exactly right?"*
-
 Open `compose.yaml`. Map each part to the commands we typed: services ≈ `docker run`, `volumes:` ≈ `-v`, and the network is created automatically. Also note `depends_on` with `condition: service_healthy`.
 
 ```bash
@@ -285,8 +273,6 @@ curl -X POST localhost:8000/users -H "Content-Type: application/json" \
 curl localhost:8000/users
 ```
 
-**Ask**: *"After `docker compose down`, will Grace still be there?"*
-
 ```bash
 docker compose down             # removes containers and network, KEEPS volumes
 docker compose up -d
@@ -295,7 +281,7 @@ curl localhost:8000/users       # Grace is still there
 docker compose down -v          # -v deletes the volumes too: data is gone
 ```
 
-**Point**: Compose is declarative, like Terraform. The file describes the stack, and `up` makes it so. Compose is for a single machine. Running containers across many machines is what Kubernetes does (next week).
+Compose is declarative, like Terraform. The file describes the stack, and `up` makes it so. Compose is for a single machine. Running containers across many machines is what Kubernetes does (next week).
 
 ---
 
