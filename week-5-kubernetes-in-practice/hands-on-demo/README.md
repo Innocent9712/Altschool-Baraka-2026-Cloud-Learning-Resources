@@ -237,6 +237,8 @@ kubectl get service frontend-lb       # EXTERNAL-IP: <pending> for a few seconds
 ./show-urls.sh                        # the localhost URL for that load balancer
 ```
 
+Open that URL. The page loads, but `/api` still returns 404: this load balancer only reaches the frontend.
+
 - Every LoadBalancer Service is a separate load balancer, and **in the cloud each one costs money**.
 - The frontend and backend would be on **different addresses**, so the frontend would need the backend's address
   baked in at build time, plus CORS settings.
