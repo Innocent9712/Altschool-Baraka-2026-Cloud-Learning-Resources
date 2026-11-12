@@ -1,0 +1,66 @@
+# A simulated CI pipeline: every step only prints what a real pipeline would do.
+# Copy this file to .github/workflows/ci.yml in a GitHub repository.
+name: CI
+
+# Triggers: what starts the pipeline
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Adds a "Run workflow" button in the Actions tab, with a switch to make the tests fail
+  workflow_dispatch:
+    inputs:
+      fail_tests:
+        description: "Make the test job fail"
+        type: boolean
+        default: false
+
+jobs:
+  # lint and test have no `needs`, so they run at the same time, each on its own machine
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Lint
+        run: |
+          echo "Checking the code style in the repository:"
+          ls -la
+          sleep 3
+          echo "No problems found"
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Show where this is running
+        run: |
+          echo "Event:    ${{ github.event_name }}"
+          echo "Branch:   ${{ github.ref_name }}"
+          echo "Commit:   ${{ github.sha }}"
+          echo "Started by: ${{ github.actor }}"
+          echo "Machine:  $(uname -a)"
+
+      - name: Run the tests
+        run: |
+          echo "Running 12 tests..."
+          sleep 5
+          if [ "${{ inputs.fail_tests }}" = "true" ]; then
+            echo "FAILED: test_checkout_total - expected 4100, got 4600"
+            exit 1
+          fi
+          echo "12 passed"
+
+  build:
+    # Waits for lint and test, and is skipped if either fails
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build the image
+        run: |
+          echo "docker build -t my-app:${{ github.sha }} ."
+          sleep 3
+          echo "Image built (simulated). Pushing and deploying it is Week 7."
