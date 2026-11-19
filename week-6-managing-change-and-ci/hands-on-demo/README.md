@@ -30,7 +30,7 @@ cp <path-to-this-folder>/ci.yml .github/workflows/ci.yml
 ```
 
 Open `.github/workflows/ci.yml` and walk through it:
-- **`on`**: the triggers. A push to `main`, any pull request, or a person clicking **Run workflow**
+- **`on`**: the triggers. A push to `main` (or `master`), any pull request, or a person clicking **Run workflow**
   (`workflow_dispatch`).
 - **`jobs`**: `lint`, `test` and `build`. Each job runs on its own fresh virtual machine (a **runner**), set by
   `runs-on`.
@@ -121,5 +121,4 @@ cd .. && rm -rf ci-sim
 |---|---|
 | Nothing appears in the **Actions** tab | The file must be in `.github/workflows/` at the root of the repository, ending in `.yml` |
 | No **Run workflow** button | The workflow must be on the default branch (`main`) first |
-| The push to `main` didn't start a run | The default branch may be called `master`: check with `git branch`, and change `branches: [main]` in `ci.yml` |
 | `gh repo delete` fails with a missing scope | Run `gh auth refresh -h github.com -s delete_repo` first |
