@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+test-results.xml
+
+# Terraform (server/)
+.terraform/
+*.tfstate
+*.tfstate.*

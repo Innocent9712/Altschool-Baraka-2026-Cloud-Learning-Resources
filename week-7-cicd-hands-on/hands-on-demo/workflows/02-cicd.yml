@@ -1,0 +1,218 @@
+# Stage 2 (CI/CD): lint and test every change. When a change lands on main, build the image once,
+# push it to GitHub's container registry, deploy it to staging, then to production after an approval.
+# Copy over .github/workflows/pipeline.yml in your repository.
+#
+# It needs, under Settings -> Secrets and variables -> Actions, and Settings -> Environments:
+#   secret   SSH_PRIVATE_KEY   the deploy key's private half (repository secret)
+#   variable SERVER_HOST       the server's IP address (repository variable)
+#   environment "staging"      with variable APP_PORT = 8080
+#   environment "production"   with variable APP_PORT = 80, and you as a required reviewer
+name: Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pipeline-${{ github.ref }}
+  # Don't cancel a run on main halfway through a deployment
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # ---------- CI: the same two jobs as stage 1, on every pull request and every push to main
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.3
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Check formatting
+        run: uv run ruff format --check .
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.3
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Run the tests
+        run: uv run pytest --junitxml=test-results.xml
+
+      - name: Upload the test report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: test-results.xml
+          retention-days: 7
+
+  # ---------- CD: only for changes that landed on main, and only if lint and test passed
+  build:
+    needs: [lint, test]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write # push to ghcr.io
+    # Hands the image's name to the deploy jobs
+    outputs:
+      image: ${{ steps.name.outputs.image }}
+    steps:
+      # ghcr.io/<owner>/<repo>:<commit SHA>. Registry names must be lowercase
+      - name: Name the image
+        id: name
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # GITHUB_TOKEN is created for this run and expires when it ends: no secret to set up
+      - name: Log in to GitHub's container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the image
+        uses: docker/build-push-action@v7
+        with:
+          push: true
+          tags: ${{ steps.name.outputs.image }}
+          # Links the image to this repository on GitHub
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-staging:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read # the server pulls the image with this run's token
+    # Gives this job the "staging" environment's variables and rules, and links the URL in the run
+    environment:
+      name: staging
+      url: http://${{ vars.SERVER_HOST }}:${{ vars.APP_PORT }}
+    # One deployment to staging at a time
+    concurrency: deploy-staging
+    env:
+      IMAGE: ${{ needs.build.outputs.image }}
+      SERVER: ubuntu@${{ vars.SERVER_HOST }}
+      APP_PORT: ${{ vars.APP_PORT }}
+      CONTAINER: shop-staging
+    steps:
+      - name: Set up SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ vars.SERVER_HOST }}" >> ~/.ssh/known_hosts
+
+      # Log the server in to the registry with this run's token, pull the image, swap the container
+      - name: Deploy
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$TOKEN" | ssh -i ~/.ssh/deploy_key "$SERVER" docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          ssh -i ~/.ssh/deploy_key "$SERVER" "
+            set -e
+            docker pull $IMAGE
+            docker logout ghcr.io
+            docker rm -f $CONTAINER || true
+            docker run -d --name $CONTAINER --restart unless-stopped \
+              -p $APP_PORT:8000 -e APP_VERSION=$GITHUB_SHA $IMAGE
+          "
+
+      # Did it work? Ask the app which version it's running
+      - name: Check the deployment
+        run: |
+          for _ in $(seq 1 20); do
+            if curl -fsS "http://${{ vars.SERVER_HOST }}:$APP_PORT/health" | grep -q "$GITHUB_SHA"; then
+              echo "Version $GITHUB_SHA is live"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "The new version didn't answer on /health"
+          ssh -i ~/.ssh/deploy_key "$SERVER" docker logs --tail 50 "$CONTAINER"
+          exit 1
+
+  # The same steps as deploy-staging, with the production environment: it waits for a reviewer
+  deploy-production:
+    needs: [build, deploy-staging]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    environment:
+      name: production
+      url: http://${{ vars.SERVER_HOST }}:${{ vars.APP_PORT }}
+    concurrency: deploy-production
+    env:
+      IMAGE: ${{ needs.build.outputs.image }}
+      SERVER: ubuntu@${{ vars.SERVER_HOST }}
+      APP_PORT: ${{ vars.APP_PORT }}
+      CONTAINER: shop-production
+    steps:
+      - name: Set up SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ vars.SERVER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$TOKEN" | ssh -i ~/.ssh/deploy_key "$SERVER" docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          ssh -i ~/.ssh/deploy_key "$SERVER" "
+            set -e
+            docker pull $IMAGE
+            docker logout ghcr.io
+            docker rm -f $CONTAINER || true
+            docker run -d --name $CONTAINER --restart unless-stopped \
+              -p $APP_PORT:8000 -e APP_VERSION=$GITHUB_SHA $IMAGE
+          "
+
+      - name: Check the deployment
+        run: |
+          for _ in $(seq 1 20); do
+            if curl -fsS "http://${{ vars.SERVER_HOST }}:$APP_PORT/health" | grep -q "$GITHUB_SHA"; then
+              echo "Version $GITHUB_SHA is live"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "The new version didn't answer on /health"
+          ssh -i ~/.ssh/deploy_key "$SERVER" docker logs --tail 50 "$CONTAINER"
+          exit 1

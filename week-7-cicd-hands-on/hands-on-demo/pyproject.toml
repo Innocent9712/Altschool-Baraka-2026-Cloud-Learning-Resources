@@ -1,0 +1,29 @@
+[project]
+name = "shop-pricing-api"
+version = "0.1.0"
+description = "Demo app for Week 7: a CI/CD pipeline from pull request to production"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.120.0",
+    "uvicorn>=0.38.0",
+]
+
+# Tools needed to develop and check the app, but not to run it.
+# `uv sync` installs them; the Docker image leaves them out (`--no-dev`).
+[dependency-groups]
+dev = [
+    "httpx2>=2.16.0",
+    "pytest>=9.0.0",
+    "ruff>=0.17.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+# E/F: errors and likely bugs, I: import order, B: common bug patterns, UP: modern syntax
+select = ["E", "F", "I", "B", "UP"]

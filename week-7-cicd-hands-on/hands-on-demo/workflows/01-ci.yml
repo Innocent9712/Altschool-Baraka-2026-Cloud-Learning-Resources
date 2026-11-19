@@ -1,0 +1,65 @@
+# Stage 1 (CI): lint and test every change, as two jobs that run in parallel.
+# Copy to .github/workflows/pipeline.yml in your repository.
+name: Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# The workflow only needs to read the code. Without this, it gets the repository's default permissions
+permissions:
+  contents: read
+
+# A new push to the same branch cancels the run that's still going for the old commit
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.3
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      # Code problems: unused imports, undefined names, likely bugs
+      - name: Lint
+        run: uv run ruff check .
+
+      # Formatting: fails if any file isn't formatted the standard way
+      - name: Check formatting
+        run: uv run ruff format --check .
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.3
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      # Also write the results to a file that other tools can read (JUnit XML)
+      - name: Run the tests
+        run: uv run pytest --junitxml=test-results.xml
+
+      # Keep the report even when tests fail (that's when you want it most)
+      - name: Upload the test report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: test-results.xml
+          retention-days: 7

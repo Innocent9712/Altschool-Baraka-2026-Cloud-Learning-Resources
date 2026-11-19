@@ -9,5 +9,5 @@ Learning content Repo for Altschool Baraka 2026 Cloud Learners - 3rd Semester
 | 4 | Kubernetes Essentials | [week-4-kubernetes-essentials](./week-4-kubernetes-essentials/) |
 | 5 | Kubernetes in Practice | [week-5-kubernetes-in-practice](./week-5-kubernetes-in-practice/) |
 | 6 | Managing Change & Continuous Integration | [week-6-managing-change-and-ci](./week-6-managing-change-and-ci/) |
-| 7 | CI/CD Hands-on | _coming soon_ |
+| 7 | CI/CD Hands-on | [week-7-cicd-hands-on](./week-7-cicd-hands-on/) |
 | 8 | Shift Left & Advanced Topics | _coming soon_ |
