@@ -5,7 +5,7 @@ name: CI
 # Triggers: what starts the pipeline
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
   # Adds a "Run workflow" button in the Actions tab, with a switch to make the tests fail
   workflow_dispatch:
